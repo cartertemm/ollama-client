@@ -54,6 +54,8 @@ class AIChatApp(wx.Frame):
 	def __init__(self, parent, title):
 		super(AIChatApp, self).__init__(parent, title=title, size=(400, 300))
 
+		self.original_title = title
+
 		dialog = ConfigDialog(None, 'Server Configuration')
 		if dialog.ShowModal() == wx.ID_OK:
 			host, port = dialog.get_host_port()
@@ -75,10 +77,13 @@ class AIChatApp(wx.Frame):
 		model_dialog = ModelManagerDialog(self, "Select Model", self.ollama)
 		if model_dialog.ShowModal() == wx.ID_OK and model_dialog.selected_model:
 			self.current_model = model_dialog.selected_model
-			print(self.current_model)
+			self.update_title()
 		else:
 			self.Close(True)  # Close the app if no model is selected
 		model_dialog.Destroy()
+
+	def update_title(self):
+		self.SetTitle(f"{self.current_model} - {self.original_title}")
 
 	def InitUI(self):
 		panel = wx.Panel(self)
@@ -90,6 +95,7 @@ class AIChatApp(wx.Frame):
 		message_label = wx.StaticText(panel, label="Enter Your Message:")
 		vbox.Add(message_label, flag=wx.LEFT, border=10)
 		self.input_txt = wx.TextCtrl(panel, style=wx.TE_PROCESS_ENTER)
+		self.input_txt.SetFocus()
 		vbox.Add(self.input_txt, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
 		role_label = wx.StaticText(panel, label="Role:")
 		vbox.Add(role_label, flag=wx.LEFT | wx.TOP, border=10)
@@ -107,13 +113,13 @@ class AIChatApp(wx.Frame):
 		]))
 		self.model_button.Bind(wx.EVT_BUTTON, self.OnManageModels)
 		vbox.Add(self.model_button, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
-		panel.SetSizer(vbox)
+		panel.SetSizerAndFit
 
 	def OnManageModels(self, event):
 		dialog = ModelManagerDialog(self, "Manage Models", self.ollama, self.current_model)
 		if dialog.ShowModal() == wx.ID_OK:
 			self.current_model = dialog.selected_model
-			print(self.current_model)
+			self.update_title()
 		dialog.Destroy()
 
 	def OnSend(self, event):
