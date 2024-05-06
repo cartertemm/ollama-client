@@ -1,0 +1,3 @@
+ollama
+wxpython
+accessible_output2
