@@ -1,10 +1,16 @@
 import threading
 import wx
 from ollama import Client
+from accessible_output2.outputs import auto
 
 
 default_host = "localhost"
 default_port = "11434"
+auto_output = auto.Auto()
+
+
+def speak(text, interrupt=True, *args, **kwargs):
+	auto_output.speak(text, interrupt=interrupt, *args, **kwargs)
 
 
 class ConfigDialog(wx.Dialog):
@@ -69,6 +75,8 @@ class AIChatApp(wx.Frame):
 		self.prompt_for_model()
 
 		self.messages = []
+		self.streaming = False
+		self.speech_buffer = ""
 
 		self.InitUI()
 		self.Centre()
@@ -132,8 +140,9 @@ class AIChatApp(wx.Frame):
 		role = self.role_choice.GetStringSelection().lower()
 		self.messages.append({"role": role, "content": user_input})
 		prefix = self.get_prefix_for_role(role)
-		self.text_ctrl.AppendText(prefix+user_input+"\n")
+		self.append_to_output(prefix+user_input+"\n")
 		response = self.ollama.chat(model=self.current_model, messages=self.messages, stream=True)
+		self.streaming = True
 		output = ""
 		for chunk in response:
 			if "error" in chunk:
@@ -143,12 +152,29 @@ class AIChatApp(wx.Frame):
 				message = chunk["message"]
 				content = message["content"]
 				if not output:
-					self.text_ctrl.AppendText(self.get_prefix_for_role(message["role"]))
+					self.append_to_output(self.get_prefix_for_role(message["role"]))
 				output += content
-				self.text_ctrl.AppendText(content)
+				self.append_to_output(content)
 			elif chunk.get("done", False):
 				self.messages.append({"role": "assistant", "content": output})
-				self.text_ctrl.AppendText("\n")
+				self.append_to_output("\n")
+		self.streaming = False
+		self.speak_output()  # there might still be text in the buffer we need to announce
+
+	def append_to_output(self, text, suppress_announcement=False):
+		self.text_ctrl.AppendText(text)
+		if not suppress_announcement:
+			if not self.streaming:
+				speak(text)
+				return
+			if len(self.speech_buffer.split(" ")) >= 10:
+				self.speak_output()
+				self.speech_buffer = ""
+			self.speech_buffer += text
+
+	def speak_output(self):
+		if self.speech_buffer:
+			speak(self.speech_buffer, interrupt=False)
 
 	def get_prefix_for_role(self, role):
 		if role == "user":
