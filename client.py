@@ -110,17 +110,23 @@ class AIChatApp(wx.Frame):
 		self.role_choice = wx.Choice(panel, choices=["User", "Assistant", "System"])
 		self.role_choice.SetSelection(0)  # Default to 'User'
 		vbox.Add(self.role_choice, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
+		hbox_buttons = wx.BoxSizer(wx.HORIZONTAL)
+		# Options button
+		self.options_button = wx.Button(panel, label='Options')
+		self.options_button.Bind(wx.EVT_BUTTON, self.OnOptions)
+		hbox_buttons.Add(self.options_button, flag=wx.RIGHT, border=5)
+		# Send button
 		self.send_button = wx.Button(panel, label='Send')
 		self.send_button.Bind(wx.EVT_BUTTON, self.OnSend)
 		self.input_txt.Bind(wx.EVT_TEXT_ENTER, self.OnSend)
-		vbox.Add(self.send_button, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
-		# Button to manage models
+		hbox_buttons.Add(self.send_button, flag=wx.RIGHT, border=5)
 		self.model_button = wx.Button(panel, label='Manage Models (Ctrl+M)')
 		self.model_button.SetAcceleratorTable(wx.AcceleratorTable([
 			(wx.ACCEL_CTRL, ord('M'), self.model_button.GetId())
 		]))
 		self.model_button.Bind(wx.EVT_BUTTON, self.OnManageModels)
-		vbox.Add(self.model_button, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+		hbox_buttons.Add(self.model_button, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+		vbox.Add(hbox_buttons, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
 		panel.SetSizerAndFit
 
 	def OnManageModels(self, event):
@@ -135,6 +141,32 @@ class AIChatApp(wx.Frame):
 		if user_input:
 			self.input_txt.SetValue("")
 			threading.Thread(target=self.stream_response, args=[user_input]).start()
+
+	def OnOptions(self, event):
+		popup_menu = wx.Menu()
+		clear_item = popup_menu.Append(wx.ID_ANY, "&Clear Conversation")
+		self.Bind(wx.EVT_MENU, self.OnClearConversation, clear_item)
+		save_item = popup_menu.Append(wx.ID_ANY, "Save Output to File")
+		self.Bind(wx.EVT_MENU, self.OnSaveOutput, save_item)
+		self.PopupMenu(popup_menu, self.options_button.GetPosition())
+		popup_menu.Destroy()
+
+	def OnClearConversation(self, event):
+		self.messages = []
+		self.text_ctrl.Clear()
+
+	def OnSaveOutput(self, event):
+		with wx.FileDialog(self, "Save text", wildcard="Text files (*.txt)|*.txt", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+			if fileDialog.ShowModal() == wx.ID_CANCEL:
+				return	 # the user changed their mind
+
+			# Save the content of the text control to the file
+			pathname = fileDialog.GetPath()
+			try:
+				with open(pathname, 'w') as file:
+					file.write(self.text_ctrl.GetValue())
+			except IOError as exc:
+				print(exc)  # for now
 
 	def stream_response(self, user_input):
 		role = self.role_choice.GetStringSelection().lower()
