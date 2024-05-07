@@ -25,7 +25,7 @@ ollama pull llama3
 Clone this repository:
 
 ```
-git clone https://github.com/cartertemm/ollama-client/ollama-client.git
+git clone https://github.com/cartertemm/ollama-client.git
 ```
 
 Change to the directory:
