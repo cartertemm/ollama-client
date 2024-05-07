@@ -165,6 +165,7 @@ class AIChatApp(wx.Frame):
 	def OnClearConversation(self, event):
 		self.messages = []
 		self.text_ctrl.Clear()
+		self.speech_buffer = ""
 
 	def OnSaveOutput(self, event):
 		with wx.FileDialog(
