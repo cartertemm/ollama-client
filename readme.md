@@ -37,7 +37,7 @@ cd ollama-client
 Install the requirements:
 
 ```
-pip install -r requirements.py
+pip install -r requirements.txt
 ```
 
 Run the program:
